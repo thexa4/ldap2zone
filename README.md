@@ -1,1 +1,1 @@
-Usage: ./ldap2zone kamer.maxmaton.nl ns2.kamer.maxmaton.nl. max@maton.info
+Usage: ./ldap2zone myzone.example.com ns1.myzone.example.com. hostmaster@example.com
