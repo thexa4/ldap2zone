@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -euo pipefail
+
+zoneName=${1:?Needs zoneName parameter}
+masterNameserver=${2:?Needs masterNameserver parameter}
+administratorMail=${3:?Needs administratorMail parameter}
+ttl=${4:-21600}
+
+escapedMail=$(tr '@' '.' <<< $administratorMail ).
+serial=$(date +%s)
+
+echo '$ORIGIN' "${zoneName}."
+echo '$TTL' "${ttl}"
+echo "@		IN	SOA	$masterNameserver	$escapedMail ( $serial ; 3600 ; 900 ; 2419200 ; $ttl )"
+
+ldapsearch -Y EXTERNAL "(&(objectClass=dNSZone)(zoneName=$zoneName))" 2>/dev/null | while read line; do
+	field=$(cut -d':' -f1 <<< $line)
+	if [[ "$field" = "dn" ]]; then
+		relativeName='?'
+	fi
+	if [[ "$field" = "relativeDomainName" ]]; then
+		relativeName=$(<<< "$line" cut -d':' -f2 | cut -d' ' -f2)
+	fi
+	if grep -q 'Record' <<< "$field"; then
+		type=$(<<< "${field%Record}" tr '[a-z]' '[A-Z]')
+		value=$(<<< "$line" cut -d':' -f2- | cut -d' ' -f2-)
+		echo "$relativeName		IN	$type	$value"
+	fi
+	#echo $field
+done
