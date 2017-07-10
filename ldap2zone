@@ -34,7 +34,6 @@ ldapsearch -Y EXTERNAL "(&(objectClass=dNSZone)(zoneName=$zoneName))" 2>/dev/nul
 	fi
 	if $haveValue && $haveRelative; then
 		echo "$relativeName		IN	$type	$value"
-		haveRelative=false
 		haveValue=false
 	fi
 done
