@@ -10,7 +10,7 @@ ttl=${4:-21600}
 escapedMail=$(tr '@' '.' <<< $administratorMail ).
 serial=$(date +%s)
 
-which ipv6calc || (echo "This application has a dependency on ipv6calc, not found in path. Please install." && exit 1)
+which ipv6calc >/dev/null || (echo "This application has a dependency on ipv6calc, not found in path. Please install." && exit 1)
 zoneName=$(ipv6calc --addr_to_ip6arpa "$ipRange" -I ipv6addr)
 
 echo '$ORIGIN' "${zoneName}"
