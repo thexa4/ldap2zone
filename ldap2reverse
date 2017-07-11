@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ipRange=${1:?Needs ip range parameter (2000:1234:1234::/64)}
+masterNameserver=${2:?Needs masterNameserver parameter}
+administratorMail=${3:?Needs administratorMail parameter}
+ttl=${4:-21600}
+
+escapedMail=$(tr '@' '.' <<< $administratorMail ).
+serial=$(date +%s)
+
+which ipv6calc || (echo "This application has a dependency on ipv6calc, not found in path. Please install." && exit 1)
+zoneName=$(ipv6calc --addr_to_ip6arpa "$ipRange" -I ipv6addr)
+
+echo '$ORIGIN' "${zoneName}."
+echo '$TTL' "${ttl}"
+echo "@		IN	SOA	$masterNameserver	$escapedMail ( $serial 3600 900 2419200 $ttl )"
+
+haveRelative=false
+haveValue=false
+ldapsearch -Y EXTERNAL "(&(objectClass=dNSZone)(zoneName=$zoneName))" 2>/dev/null | while read line; do
+	field=$(cut -d':' -f1 <<< $line)
+	if [[ "$field" = "dn" ]]; then
+		relativeName='?'
+		haveRelative=false
+		haveValue=false
+	fi
+	if [[ "$field" = "relativeDomainName" ]]; then
+		relativeName=$(<<< "$line" cut -d':' -f2 | cut -d' ' -f2)
+		haveRelative=true
+	fi
+	if grep -q 'aAAARecord' <<< "$field"; then
+		value=$(<<< "$line" cut -d':' -f2- | cut -d' ' -f2-)
+		haveValue=true
+	fi
+	if $haveValue && $haveRelative; then
+		arpaAddr=$(ipv6calc --addr_to_ip6arpa "$value" -I ipv6addr)
+		echo "$arpaAddr	IN	PTR	${relativeName}.${zoneName}."
+		haveValue=false
+	fi
+done
