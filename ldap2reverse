@@ -16,6 +16,7 @@ zoneName=$(ipv6calc --addr_to_ip6arpa "$ipRange" -I ipv6addr)
 echo '$ORIGIN' "${zoneName}"
 echo '$TTL' "${ttl}"
 echo "@		IN	SOA	$masterNameserver	$escapedMail ( $serial 3600 900 2419200 $ttl )"
+echo "@		IN	NS	$masterNameserver
 
 haveRelative=false
 haveValue=false
